@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: internal-memo-training-approval
+expected_outcome: |
+  A บันทึกข้อความ (หนังสือภายใน) with ส่วนราชการ/ที่/วันที่/เรื่อง header, addressed เรียน นายแพทย์สาธารณสุขจังหวัดเชียงใหม่, no closing ขอแสดงความนับถือ, body that states background, the request and the budget amount in figures with Thai words, ending with จึงเรียนมาเพื่อโปรดพิจารณาอนุมัติ, signed by the requester, delivered as a .docx.

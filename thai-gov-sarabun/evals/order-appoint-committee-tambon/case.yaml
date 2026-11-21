@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: order-appoint-committee-tambon
+expected_outcome: |
+  A คำสั่ง (แบบที่ ๔) titled คำสั่งองค์การบริหารส่วนตำบลหนองหาร with a number in ลำดับ/พ.ศ. form (blank or placeholder sequence), เรื่อง แต่งตั้งคณะกรรมการ…, body giving the reason and the legal authority (or a placeholder for it), the committee list with roles, duties, ทั้งนี้ ตั้งแต่…, สั่ง ณ วันที่ … พ.ศ. …, signed by the นายก อบต. with no salutation or closing, delivered as a .docx.
