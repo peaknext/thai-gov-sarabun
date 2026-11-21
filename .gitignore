@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+thai-gov-sarabun/evals/results/
+*-workspace/

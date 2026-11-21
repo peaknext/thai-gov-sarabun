@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: external-letter-to-attorney-general
+expected_outcome: |
+  A หนังสือภายนอก from Khon Kaen University to the Attorney General using กราบเรียน / ขอแสดงความนับถืออย่างยิ่ง, full Thai date, ที่ line without an invented registration number, enclosure listed and mentioned in the body, signer printed with the full academic title, contact block for คณะนิติศาสตร์, delivered as a .docx.
