@@ -11,6 +11,7 @@
     python3 thai_format.py digits "ข้อความ 123"
     python3 thai_format.py date 2026-11-21 [--arabic] [--short]
     python3 thai_format.py today
+    python3 thai_format.py weekday 2569-12-05     -> วันเสาร์ — วันหยุด: เสาร์–อาทิตย์, วันพ่อแห่งชาติ
 """
 from __future__ import annotations
 
@@ -31,6 +32,16 @@ MONTHS_SHORT = [
     "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
     "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
 ]
+
+WEEKDAYS = ["วันจันทร์", "วันอังคาร", "วันพุธ", "วันพฤหัสบดี", "วันศุกร์", "วันเสาร์", "วันอาทิตย์"]
+# วันหยุดราชการที่วันที่ตายตัว (ไม่รวมวันหยุดทางพุทธศาสนาที่เลื่อนตามจันทรคติ และวันหยุดพิเศษตามมติ ครม.)
+FIXED_HOLIDAYS = {
+    (1, 1): "วันขึ้นปีใหม่", (4, 6): "วันจักรี", (4, 13): "วันสงกรานต์", (4, 14): "วันสงกรานต์",
+    (4, 15): "วันสงกรานต์", (5, 1): "วันแรงงานแห่งชาติ", (5, 4): "วันฉัตรมงคล",
+    (6, 3): "วันเฉลิมพระชนมพรรษาสมเด็จพระราชินี", (7, 28): "วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระเจ้าอยู่หัว",
+    (8, 12): "วันแม่แห่งชาติ", (10, 13): "วันนวมินทรมหาราช", (10, 23): "วันปิยมหาราช",
+    (12, 5): "วันพ่อแห่งชาติ", (12, 10): "วันรัฐธรรมนูญ", (12, 31): "วันสิ้นปี",
+}
 
 # Text that must keep Arabic digits even inside a Thai document
 # (URLs, e-mail addresses, file names such as 2564_OPM0913_56.pdf).
@@ -82,6 +93,30 @@ def thai_date(d, *, arabic: bool = False, short: bool = False, with_be_prefix: b
     return s if arabic else thai_digits(s)
 
 
+def weekday_info(d) -> str:
+    """'วันเสาร์ — วันหยุด: วันพ่อแห่งชาติ' — ใช้ตรวจว่าวันกำหนด (กำหนดส่ง วันประชุม วันงาน) ตรงวันหยุดหรือไม่."""
+    dt = _parse(d)
+    info = WEEKDAYS[dt.weekday()]
+    notes = []
+    if dt.weekday() >= 5:
+        notes.append("เสาร์–อาทิตย์")
+    if (dt.month, dt.day) in FIXED_HOLIDAYS:
+        notes.append(FIXED_HOLIDAYS[(dt.month, dt.day)])
+    return info + (" — วันหยุด: " + ", ".join(notes) if notes else "")
+
+
+def find_dates(text: str):
+    """หาวันที่รูปแบบ '๕ ธันวาคม ๒๕๖๙' ในข้อความ คืน list ของ (ข้อความ, date)."""
+    t = arabic_digits(text)
+    out = []
+    for m in re.finditer(r"(\d{1,2})\s*(" + "|".join(MONTHS) + r")\s*(?:พ\.ศ\.\s*)?(\d{4})", t):
+        try:
+            out.append((m.group(0), _parse(f"{m.group(3)}-{MONTHS.index(m.group(2)) + 1}-{m.group(1)}"), m.start()))
+        except ValueError:
+            pass
+    return out
+
+
 def main(argv: list[str]) -> int:
     if not argv or argv[0] in {"-h", "--help"}:
         print(__doc__)
@@ -94,6 +129,8 @@ def main(argv: list[str]) -> int:
     elif cmd == "date":
         print(thai_date(args[0], arabic="--arabic" in flags, short="--short" in flags,
                         with_be_prefix="--be" in flags))
+    elif cmd == "weekday":
+        print(weekday_info(args[0]))
     elif cmd == "today":
         print(thai_date(_dt.date.today(), arabic="--arabic" in flags, short="--short" in flags,
                         with_be_prefix="--be" in flags))

@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from build_docx import TYPE_ALIASES  # noqa: E402
-from thai_format import MONTHS, arabic_digits  # noqa: E402
+from thai_format import MONTHS, arabic_digits, find_dates, weekday_info  # noqa: E402
 
 # ภาคผนวก ๒ ข้อ ๓.๑ (แก้ไขตามหนังสือ นร ๐๑๐๖/ว ๙๑๓ ลงวันที่ ๘ พ.ค. ๒๕๕๕) — ใช้ "กราบเรียน"
 KRAB_RIAN = [
@@ -216,6 +216,15 @@ def check(spec: dict, rep: Report):
             rep.warn("ย่อหน้าสุดท้ายควรเป็นส่วนสรุปความประสงค์ เช่น 'จึงเรียนมาเพื่อโปรดพิจารณา'")
     if re.search(r"\d", body) and re.search(r"[๐-๙]", body) and not spec.get("digits"):
         rep.info("เนื้อความมีทั้งเลขอารบิกและเลขไทย — build_docx จะแปลงเป็นเลขไทยทั้งหมดอัตโนมัติ")
+    # วันกำหนดในเนื้อความ: บอกวันในสัปดาห์ และเตือนถ้าตรงวันหยุด (ผู้ใช้มักไม่ทันสังเกต)
+    for txt, dt, pos in find_dates(body):
+        wi = weekday_info(dt)
+        if "วันหยุด" in wi:
+            ctx = arabic_digits(body)[max(0, pos - 25):pos]
+            level = rep.warn if re.search(r"ภายใน|กำหนดส่ง|ส่ง.*ภายใน|ไม่เกิน", ctx) else rep.info
+            level(f"'{txt}' ตรงกับ{wi} — ถ้าเป็นกำหนดส่ง/วันทำการ ควรแจ้งผู้ใช้ให้พิจารณา")
+        else:
+            rep.info(f"'{txt}' = {wi}")
     leftovers = sorted(set(re.findall(r"\[[^\]]{1,40}\]", text_of(spec))))
     if leftovers:
         rep.info("ยังมีช่องที่ต้องเติม: " + ", ".join(leftovers))
