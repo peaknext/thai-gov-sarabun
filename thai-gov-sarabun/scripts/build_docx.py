@@ -26,7 +26,8 @@ news (ข่าว แบบที่ ๙), certificate (หนังสือ�
 Layout values that the regulation itself fixes (Garuda 3 cm / 1.5 cm, A4, red urgency text >= 32 pt)
 are followed exactly. Margins, font size and indents follow common government practice
 (TH SarabunPSK 16 pt, left 3 cm, right 2 cm, paragraph indent 2.5 cm) — see references/layout-spec.md.
-Thai word-breaking settings follow the thai-docx rules (bidi=th-TH, w:cs on Thai runs).
+After saving, scripts/thai_docx_fix.py is applied so Word breaks and spell-checks Thai correctly
+(lang bidi=th-TH in docDefaults and every style, w:cs + hint on Thai runs, themeFontLang, sz/szCs, bCs).
 """
 from __future__ import annotations
 
@@ -48,6 +49,7 @@ from docx.shared import Cm, Pt, RGBColor
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from thai_format import thai_digits  # noqa: E402
+from thai_docx_fix import fix_docx, verify  # noqa: E402
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 GARUDA = SKILL_DIR / "assets" / "garuda.png"
@@ -362,12 +364,20 @@ class Builder:
                 first = item.get("indent")
                 align = item.get("align", "justify")
                 bold = item.get("bold", False)
-                b = item.get("before", before)
+                # a continuation line (explicit indent, e.g. a member's position) sits tight under its item
+                b = item.get("before", 0 if "indent" in item else before)
             else:
                 txt, first, align, bold, b = item, None, "justify", False, before
+                if "\t" in txt:
+                    b = 3
             if first is None:
                 first = PARA_INDENT + self._level(txt) * 0.75
-            self.para(txt, first=first, before=b, align=align, bold=bold)
+            if "\t" in txt and align == "justify":
+                align = None  # justified tab lines look broken
+            p = self.para(txt, first=first, before=b, align=align, bold=bold)
+            if "\t" in txt:
+                tab = item.get("tab") if isinstance(item, dict) else None
+                p.paragraph_format.tab_stops.add_tab_stop(Cm(tab or self.spec.get("tab_stop", 10.0)))
 
     @staticmethod
     def _level(txt: str) -> int:
@@ -378,8 +388,15 @@ class Builder:
             return 1
         return 0
 
+    def keep_last_with_next(self, n=1):
+        """Stop the signature block from being stranded alone on a new page."""
+        paras = self.doc.paragraphs
+        for p in paras[-n:]:
+            p.paragraph_format.keep_with_next = True
+
     def signature(self, closing=None, before=12, gap_lines=3):
         signer = self.spec.get("signer") or {}
+        self.keep_last_with_next(1)
         if closing:
             self.para(closing, align="center", left=SIGN_INDENT, before=before, keep_next=True)
         else:
@@ -417,6 +434,23 @@ class Builder:
                 self.para(line, left=1.75)
 
     # ---------------------------------------------------------------- types
+    def distribution(self):
+        """บัญชีรายชื่อผู้รับแนบท้าย (หนังสือเวียน / สำเนาส่งตามรายชื่อที่แนบ)."""
+        names = self.spec.get("distribution")
+        if not names:
+            return
+        p = self.para()
+        p.add_run().add_break(WD_BREAK.PAGE)
+        title = self.spec.get("distribution_title", "บัญชีรายชื่อผู้รับ")
+        self.para(title, align="center", bold=True)
+        num = self.spec.get("number")
+        if num:
+            self.para(f"แนบท้ายหนังสือ ที่ {num}" + (f" ลงวันที่ {self.spec['date']}" if self.spec.get("date") else ""),
+                      align="center")
+        self.short_rule()
+        for i, n in enumerate(names, 1):
+            self.para(f"{i}. {n}", left=1.0, before=3)
+
     def build_external(self):
         s = self.spec
         self.top_garuda_row()
@@ -442,6 +476,7 @@ class Builder:
         self.body(s.get("body"))
         self.signature(s.get("closing", "ขอแสดงความนับถือ"))
         self.contact_block()
+        self.distribution()
 
     def build_internal(self):
         s = self.spec
@@ -482,6 +517,7 @@ class Builder:
         self.para(s.get("salutation", ""), before=12)
         self.body(s.get("body"))
         self.signature(s.get("closing"), gap_lines=3)
+        self.distribution()
 
     def build_stamped(self):
         s = self.spec
@@ -498,6 +534,7 @@ class Builder:
             contact = [contact]
         for i, line in enumerate(contact):
             self.para(line, before=24 if i == 0 else 0)
+        self.distribution()
 
     def _title_block(self, lines):
         for i, (txt, bold) in enumerate(lines):
@@ -506,6 +543,7 @@ class Builder:
         self.short_rule()
 
     def _dated_signature(self, label, date):
+        self.keep_last_with_next(2)
         self.para(f"{label} {date}".strip(), left=4.0, before=18, keep_next=True)
         self.signature(None, before=0, gap_lines=2)
 
@@ -519,7 +557,7 @@ class Builder:
         ])
         self.body(s.get("body"))
         if s.get("effective"):
-            self.para(s["effective"], first=PARA_INDENT, before=6)
+            self.para(s["effective"], first=PARA_INDENT, before=6, keep_next=True)
         self._dated_signature("สั่ง ณ วันที่", s.get("date", ""))
 
     def _articles(self):
@@ -705,21 +743,7 @@ class Builder:
             "certificate": self.build_certificate,
             "minutes": self.build_minutes,
         }[kind]()
-        self._settings_theme_lang()
         return self.doc
-
-    def _settings_theme_lang(self):
-        settings = self.doc.settings.element
-        if settings.find(qn("w:themeFontLang")) is None:
-            el = OxmlElement("w:themeFontLang")
-            el.set(qn("w:val"), "en-US")
-            el.set(qn("w:eastAsia"), "en-US")
-            el.set(qn("w:bidi"), "th-TH")
-            compat = settings.find(qn("w:compat"))
-            if compat is not None:
-                compat.addnext(el)
-            else:
-                settings.append(el)
 
 
 def to_pdf(docx_path: Path) -> Path | None:
@@ -743,8 +767,12 @@ def main():
     spec = json.loads(Path(a.spec).read_text(encoding="utf-8"))
     out = Path(a.output)
     out.parent.mkdir(parents=True, exist_ok=True)
-    Builder(spec, a.font, a.arabic_digits).build().save(out)
-    print(f"wrote {out}")
+    builder = Builder(spec, a.font, a.arabic_digits)
+    builder.build().save(out)
+    # Thai Word rules: bidi=th-TH language everywhere, w:cs + hint on Thai runs, themeFontLang, sz/szCs, bCs
+    fix_docx(str(out), str(out), builder.font)
+    problems = verify(str(out))
+    print(f"wrote {out}" + ("" if not problems else "\nThai-Word check problems:\n  " + "\n  ".join(problems)))
     if a.pdf:
         pdf = to_pdf(out)
         if pdf:

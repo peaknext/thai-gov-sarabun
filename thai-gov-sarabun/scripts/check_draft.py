@@ -94,6 +94,14 @@ def text_of(v) -> str:
     return str(v)
 
 
+def opener_is(sal: str, word: str) -> bool:
+    return sal.startswith(word)
+
+
+def num_raw(spec) -> str:
+    return re.sub(r"\s+", "", arabic_digits(spec.get("number") or ""))
+
+
 def check(spec: dict, rep: Report):
     kind = TYPE_ALIASES.get(spec.get("type", ""))
     if not kind:
@@ -141,6 +149,23 @@ def check(spec: dict, rep: Report):
                     rep.error("หนังสือภายนอกต้องมีคำลงท้าย")
                 elif clo not in PAIRS[opener]:
                     rep.error(f"คำลงท้าย '{clo}' ไม่เข้าคู่กับคำขึ้นต้น '{opener}' (ควรเป็น: {' / '.join(PAIRS[opener])})")
+    if opener_is(sal, "นมัสการ") and clo:
+        r = sal[len("นมัสการ"):].strip()
+        want = None
+        if re.match(r"^(สมเด็จพระ|พระพรหม)", r):
+            want = "ขอนมัสการด้วยความเคารพอย่างยิ่ง"   # สมเด็จพระราชาคณะ / รองสมเด็จ
+        elif re.match(r"^(พระธรรม|พระเทพ|พระราช)", r) and not r.startswith("พระราชวัง"):
+            want = "ขอนมัสการด้วยความเคารพอย่างสูง"   # พระราชาคณะ
+        elif re.match(r"^(พระครู|พระมหา|พระใบฎีกา|พระสมุห์|พระปลัด|พระอธิการ|เจ้าอาวาส)", r):
+            want = "ขอนมัสการด้วยความเคารพ"            # พระภิกษุสงฆ์ทั่วไป
+        if want and clo != want:
+            rep.warn(f"ผู้รับดูเหมือนเป็นพระชั้น '{r.split()[0]}' — คำลงท้ายตามภาคผนวก ๒ ข้อ ๒ ควรเป็น '{want}' (ตรวจสมณศักดิ์อีกครั้ง)")
+        for bad, good in (("เชิญ", "อาราธนา/นิมนต์"), ("เงิน", "ปัจจัย"), ("รับประทาน", "ฉัน")):
+            if bad in text_of(spec.get("body")) + (spec.get("subject") or ""):
+                rep.warn(f"หนังสือถึงพระสงฆ์: พบคำ '{bad}' — ควรใช้ '{good}' (to-monks.md)")
+    circular = bool(spec.get("circular") or spec.get("distribution"))
+    if circular and kind in {"external", "internal", "stamped"} and "/ว" not in num_raw(spec):
+        rep.error("หนังสือเวียนต้องเติม 'ว' หน้าเลขทะเบียนหนังสือส่ง เช่น 'สธ ๐๔๐๑/ว ๑๒๓' (ข้อ ๓๒)")
     if kind == "internal" and clo:
         rep.warn("หนังสือภายใน/บันทึกข้อความ (แบบที่ ๒) ไม่มีคำลงท้าย")
     if kind in {"stamped", "order", "regulation", "bylaw", "announcement", "statement", "news", "certificate"} and sal:
@@ -219,7 +244,7 @@ def check(spec: dict, rep: Report):
     for ab in NAME_ABBR:
         if ab in name:
             rep.warn(f"ชื่อใต้ลายมือชื่อมีคำย่อ '{ab}' — ภาคผนวก ๓ ให้พิมพ์คำนำนาม/ยศ/บรรดาศักดิ์เป็นคำเต็ม")
-    if name and not re.match(r"^\(?(นาย|นาง|นางสาว|ท่านผู้หญิง|คุณหญิง|หม่อม|ศาสตราจารย์|รองศาสตราจารย์|ผู้ช่วยศาสตราจารย์|"
+    if name and not name.startswith("[") and not re.match(r"^\(?(นาย|นาง|นางสาว|ท่านผู้หญิง|คุณหญิง|หม่อม|ศาสตราจารย์|รองศาสตราจารย์|ผู้ช่วยศาสตราจารย์|"
                              r"นายแพทย์|แพทย์หญิง|ทันตแพทย์|พระ|พล|พัน|ร้อย|จ่า|สิบ|พลตำรวจ|ว่าที่)", name) \
             and not signer.get("rank"):
         rep.warn("ชื่อเต็มใต้ลายมือชื่อควรมีคำนำนาม นาย/นาง/นางสาว (ภาคผนวก ๓ ข้อ ๓)")
