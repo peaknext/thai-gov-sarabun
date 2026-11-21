@@ -1,17 +1,14 @@
 ---
 name: thai-gov-sarabun
 description: >-
-  Draft Thai government official documents (หนังสือราชการ) that follow ระเบียบสำนักนายกรัฐมนตรีว่าด้วยงานสารบรรณ
-  พ.ศ. ๒๕๒๖ (amended through ฉบับที่ ๔ พ.ศ. ๒๕๖๔) — correct form, parts, salutations, numbering, signature block
-  and formal Thai bureaucratic language — and render them to .docx with the Garuda and standard layout.
-  Covers หนังสือภายนอก, หนังสือภายใน/บันทึกข้อความ, หนังสือประทับตรา, คำสั่ง, ระเบียบ, ข้อบังคับ, ประกาศ/แจ้งความ,
-  แถลงการณ์, ข่าว, หนังสือรับรอง, รายงานการประชุม, บันทึกเสนอ, หนังสือเวียน (incl. หนังสือเวียนภายในหน่วยงาน),
-  หนังสือถึงพระสงฆ์ (อาราธนา/นิมนต์), การส่งหนังสือทางอีเมล and English official letters (ภาคผนวก ๔).
-  Also use it whenever you create or fix any Word .docx containing Thai text, so Word breaks and spell-checks Thai correctly. Use this skill whenever the user wants to write, draft, fix, check, format
-  or reply to any Thai official/government letter or document — e.g. "ร่างหนังสือ", "ทำหนังสือเชิญ", "เขียนบันทึกข้อความ",
-  "ขออนุมัติ", "ออกคำสั่งแต่งตั้ง", "ทำประกาศรับสมัคร", "รายงานการประชุม", "หนังสือราชการ", "งานสารบรรณ", "เรียน/กราบเรียน
-  ใช้ยังไง", Thai civil-service paperwork, อบต./เทศบาล/โรงเรียน/โรงพยาบาลรัฐ documents — even if the user does
-  not name the regulation or the document type.
+  Draft Thai government documents (หนังสือราชการ) per ระเบียบสำนักนายกรัฐมนตรีว่าด้วยงานสารบรรณ ๒๕๒๖ (amended to ๒๕๖๔):
+  correct form, parts, salutations, numbering, signature block and formal bureaucratic Thai, rendered to .docx with
+  the Garuda. Covers หนังสือภายนอก, บันทึกข้อความ, หนังสือประทับตรา, คำสั่ง, ระเบียบ, ข้อบังคับ, ประกาศ, แถลงการณ์, ข่าว,
+  หนังสือรับรอง, รายงานการประชุม, หนังสือเวียน, letters to monks, email sending and English official letters.
+  Use whenever the user wants to write, draft, fix, check or reply to any Thai official letter or document —
+  "ร่างหนังสือ", "ทำหนังสือเชิญ", "บันทึกข้อความ", "ขออนุมัติ", "คำสั่งแต่งตั้ง", "ประกาศรับสมัคร", "งานสารบรรณ",
+  "เรียน/กราบเรียน", อบต./โรงเรียน/โรงพยาบาลรัฐ paperwork — even if they don't name the regulation or type.
+  Also use when creating any Word .docx with Thai text, so Word breaks and spell-checks Thai correctly.
 ---
 
 # ร่างหนังสือราชการไทยตามระเบียบงานสารบรรณ
